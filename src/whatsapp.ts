@@ -59,12 +59,21 @@ export function initWhatsApp(): Client {
   return client;
 }
 
-export async function sendWhatsAppMessage(message: string): Promise<void> {
+export async function sendWhatsAppMessage(message: string, recipients?: string[]): Promise<void> {
   if (!client || !isReady) {
     throw new Error('WhatsApp client not ready');
   }
 
-  for (const recipient of config.whatsapp.recipients) {
+  const targetRecipients = recipients && recipients.length > 0
+    ? recipients
+    : config.whatsapp.recipients;
+
+  if (targetRecipients.length === 0) {
+    console.warn('[WhatsApp] No recipients provided');
+    return;
+  }
+
+  for (const recipient of targetRecipients) {
     const chatId = `${recipient}@c.us`;
     try {
       await client.sendMessage(chatId, message);

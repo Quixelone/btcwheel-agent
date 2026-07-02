@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { config } from './config';
 import { sendWhatsAppMessage } from './whatsapp';
-import { sendToSupabase } from './supabase';
+import { sendToSupabase, fetchWhatsAppSubscribers } from './supabase';
 import { formatWhatsAppMessage } from './format';
 import { scrapeAll } from './scrapers';
 
@@ -25,8 +25,9 @@ export function startScheduler(): void {
 
       // Send WhatsApp
       const message = formatWhatsAppMessage(products, btcPrice);
+      const recipients = await fetchWhatsAppSubscribers();
       try {
-        await sendWhatsAppMessage(message);
+        await sendWhatsAppMessage(message, recipients);
         console.log('[Scheduler] WhatsApp notifications sent');
       } catch (error) {
         console.error('[Scheduler] WhatsApp send failed:', error);
