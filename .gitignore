@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+logs/
+.wwebjs_auth/
+.wwebjs_cache/
+puppeteer_data/
+cookies/
+*.png
+*.jpg
+.DS_Store
