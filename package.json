@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "run-now": "node dist/run-now.js",
     "lint": "eslint src/**/*.ts"
   },
   "keywords": ["btcwheel", "dual-investment", "whatsapp", "scraper"],

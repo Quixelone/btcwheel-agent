@@ -57,6 +57,17 @@ SCRAPE_SCHEDULE=5 8 * * *
 SCRAPE_HEADLESS=true
 ```
 
+## Test immediato (senza aspettare le 8:05 UTC)
+
+Per verificare che scraping e WhatsApp funzionino subito:
+
+```bash
+cd /opt/btcwheel-agent
+npm run run-now
+```
+
+Lo script eseguirà scraping, invierà i dati a Supabase e invierà il messaggio WhatsApp ai destinatari attivi.
+
 ## Deploy aggiornamenti
 
 ```bash

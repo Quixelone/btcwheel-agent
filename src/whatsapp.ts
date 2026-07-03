@@ -87,3 +87,25 @@ export async function sendWhatsAppMessage(message: string, recipients?: string[]
 export function getWhatsAppStatus(): { initialized: boolean; ready: boolean } {
   return { initialized: !!client, ready: isReady };
 }
+
+export function waitForReady(timeoutMs = 60000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (isReady && client) {
+      resolve();
+      return;
+    }
+
+    const checkInterval = setInterval(() => {
+      if (isReady && client) {
+        clearInterval(checkInterval);
+        clearTimeout(timeout);
+        resolve();
+      }
+    }, 1000);
+
+    const timeout = setTimeout(() => {
+      clearInterval(checkInterval);
+      reject(new Error('WhatsApp client not ready within timeout'));
+    }, timeoutMs);
+  });
+}
