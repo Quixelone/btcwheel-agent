@@ -26,13 +26,23 @@ export async function scrapeKuCoin(): Promise<ScrapedProduct[]> {
 
     const tomorrow8am = getTomorrow8am();
     const result: ScrapedProduct[] = [];
+    const allProducts = data.data || [];
+    console.log(`[KuCoin] Received ${allProducts.length} products`);
 
-    for (const p of data.data || []) {
+    if (allProducts.length > 0) {
+      console.log('[KuCoin] Sample product:', JSON.stringify(allProducts[0], null, 2));
+    }
+
+    let btcCount = 0;
+    let expiryFiltered = 0;
+
+    for (const p of allProducts) {
       const isBtc =
         p.investCurrency === 'BTC' ||
         p.targetCurrency === 'BTC' ||
         p.strikeCurrency === 'BTC';
       if (!isBtc) continue;
+      btcCount++;
 
       const type = p.side === 'PUT' ? 'BUY_LOW' : 'SELL_HIGH';
       const strike = parseFloat(p.strikePrice);
@@ -40,11 +50,21 @@ export async function scrapeKuCoin(): Promise<ScrapedProduct[]> {
       const apy = annualRate * 100;
       const settlementTime = Number(p.expectSettleTime || p.expirationTime);
 
-      if (!strike || !annualRate || !settlementTime) continue;
-      if (apy <= 0 || apy > 500) continue;
+      if (!strike || !annualRate || !settlementTime) {
+        console.log(`[KuCoin] Skipping invalid product: strike=${strike}, annualRate=${annualRate}, settlementTime=${settlementTime}`);
+        continue;
+      }
+      if (apy <= 0 || apy > 500) {
+        console.log(`[KuCoin] Skipping product due to APY out of range: ${apy}`);
+        continue;
+      }
 
       const diffFromTarget = Math.abs(settlementTime - tomorrow8am.getTime());
-      if (diffFromTarget > 60 * 60 * 1000) continue;
+      if (diffFromTarget > 60 * 60 * 1000) {
+        expiryFiltered++;
+        console.log(`[KuCoin] Skipping product due to expiry mismatch: ${new Date(settlementTime).toISOString()} (diff ${Math.round(diffFromTarget / 60000)} min)`);
+        continue;
+      }
 
       const settlementDate = new Date(settlementTime).toISOString();
 
@@ -60,6 +80,7 @@ export async function scrapeKuCoin(): Promise<ScrapedProduct[]> {
       });
     }
 
+    console.log(`[KuCoin] ${allProducts.length} total -> ${btcCount} BTC -> ${result.length} after expiry filter (expiry filtered: ${expiryFiltered})`);
     return result;
   } finally {
     clearTimeout(timeout);

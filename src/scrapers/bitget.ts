@@ -29,6 +29,13 @@ export async function scrapeBitget(): Promise<ScrapedProduct[]> {
     await new Promise((r) => setTimeout(r, 15000));
     await saveCookies(page, 'bitget');
 
+    console.log(`[Bitget] Intercepted ${responses.length} JSON responses`);
+    if (responses.length > 0) {
+      responses.forEach((r, i) => {
+        console.log(`[Bitget] Response ${i}: ${r.url.substring(0, 120)}... keys: ${Object.keys(r.body).join(',')}`);
+      });
+    }
+
     for (const { url, body } of responses) {
       if (!url.includes('bitget.com')) continue;
 
@@ -39,6 +46,11 @@ export async function scrapeBitget(): Promise<ScrapedProduct[]> {
         body?.list;
       if (!Array.isArray(list)) continue;
 
+      console.log(`[Bitget] Processing list of ${list.length} items`);
+      if (list.length > 0) {
+        console.log('[Bitget] Sample item:', JSON.stringify(list[0], null, 2));
+      }
+
       for (const item of list) {
         try {
           const strike = parseFloat(item.strikePrice || item.strike || item.price);
@@ -47,8 +59,14 @@ export async function scrapeBitget(): Promise<ScrapedProduct[]> {
           const expireTime = Number(item.settlementTime || item.expireTime || item.expirationTime);
           const side = String(item.side || item.type || item.direction || '').toUpperCase();
 
-          if (!strike || !apy || !expireTime) continue;
-          if (apy < 1 || apy > 500) continue;
+          if (!strike || !apy || !expireTime) {
+            console.log(`[Bitget] Skipping invalid item: strike=${strike}, apy=${apy}, expireTime=${expireTime}`);
+            continue;
+          }
+          if (apy < 1 || apy > 500) {
+            console.log(`[Bitget] Skipping item due to APY out of range: ${apy}`);
+            continue;
+          }
 
           const type = side.includes('PUT') || side.includes('LOW') ? 'BUY_LOW' : 'SELL_HIGH';
 
@@ -60,10 +78,10 @@ export async function scrapeBitget(): Promise<ScrapedProduct[]> {
             apy: Math.round(apy * 100) / 100,
             settlement_date: new Date(expireTime).toISOString(),
             is_safe: apy < 50,
-            ai_analysis: `Bitget Dual | Strike: $${strike} | APY: ${apy.toFixed(2)}%`,
+            ai_analysis: `Bitget Dual | Strike: ${strike} | APY: ${apy.toFixed(2)}%`,
           });
-        } catch {
-          // skip invalid item
+        } catch (err) {
+          console.log('[Bitget] Error parsing item:', err);
         }
       }
     }
@@ -71,5 +89,6 @@ export async function scrapeBitget(): Promise<ScrapedProduct[]> {
     await browser.close();
   }
 
+  console.log(`[Bitget] Total products extracted: ${products.length}`);
   return products;
 }
